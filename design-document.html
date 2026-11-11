@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Assignment 1 — Solution Design Document</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #0f4c81;
+    --border: #d9d9d9;
+    --bg-head: #f2f6fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    line-height: 1.5;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 32px 40px;
+    font-size: 14px;
+  }
+  h1 { font-size: 24px; margin: 0 0 4px; color: var(--accent); }
+  h2 {
+    font-size: 18px; margin: 28px 0 10px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent); color: var(--accent);
+  }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  .subtitle { color: var(--muted); margin: 0 0 20px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+  ul { margin: 8px 0 8px 4px; padding-left: 20px; }
+  li { margin: 3px 0; }
+  code {
+    background: #f0f2f5; border-radius: 4px; padding: 1px 5px;
+    font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 13px; }
+  th, td { border: 1px solid var(--border); padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: var(--bg-head); }
+  .note {
+    background: #fbf7e8; border-left: 4px solid #e0b400; padding: 8px 12px;
+    color: #5a4a00; margin: 12px 0; border-radius: 0 4px 4px 0;
+  }
+  @page { margin: 2cm; }
+  @media print { body { padding: 0; max-width: none; } a { color: inherit; text-decoration: none; } }
+</style>
+</head>
+<body>
+
+<h1>Assignment 1 — Command Line Shopping Cart</h1>
+<p class="subtitle">Solution Design Document &nbsp;·&nbsp; Course: BTH012 (Assignment 1, Part A)</p>
+
+<h2>Overview</h2>
+<p>
+  This document describes the design of a text-based Command Line Shopping Cart system
+  built with Node.js. The business logic is separated from the command-line interface so
+  it can be unit tested in isolation. Tests are written with Vitest.
+</p>
+<p>
+  The two sections below cover the required deliverables:
+  <strong>(1) Test specs</strong> — the planned test suites (<code>describe</code>) and test
+  cases (<code>it</code>), described without setup code and without value assertions; and
+  <strong>(2) Program design</strong> — the planned functions, their parameters, return values,
+  and responsibilities.
+</p>
+
+<h2>1. Test Specifications</h2>
+<div class="note">
+  These are the <code>describe</code> / <code>it</code> descriptions only; setup code and
+  <code>expect</code> assertions are intentionally omitted.
+</div>
+
+<h3>describe <code>createProducts</code></h3>
+<ul>
+  <li>it returns independent copies of the catalog</li>
+</ul>
+
+<h3>describe <code>createCart</code></h3>
+<ul>
+  <li>it starts empty</li>
+</ul>
+
+<h3>describe <code>findProduct</code></h3>
+<ul>
+  <li>it returns the product for an existing id</li>
+  <li>it returns null for a missing id</li>
+</ul>
+
+<h3>describe <code>addToCart</code></h3>
+<ul>
+  <li>it adds a product to the cart with correct total price</li>
+  <li>it adds distinct products as separate cart items</li>
+  <li>it merges repeated products by incrementing quantity and total price</li>
+  <li>it throws when the product does not exist</li>
+  <li>it throws for a non-positive or non-integer quantity</li>
+  <li>it throws when the requested quantity exceeds available stock</li>
+  <li>it throws when the cumulative quantity exceeds available stock</li>
+</ul>
+
+<h3>describe <code>getTotal</code></h3>
+<ul>
+  <li>it returns 0 for an empty cart</li>
+  <li>it sums the total price of every item</li>
+  <li>it handles fractional prices without floating point drift</li>
+</ul>
+
+<h3>describe <code>checkout</code></h3>
+<ul>
+  <li>it throws when checking out an empty cart</li>
+  <li>it decreases stock and clears the cart</li>
+  <li>it returns the correct total for the checked-out items</li>
+  <li>it returns a snapshot of the purchased items</li>
+  <li>it does not mutate stock when checkout fails</li>
+</ul>
+
+
+<h2>2. Program Design</h2>
+
+<h3>Data structures</h3>
+<p><strong>Product</strong> (from the catalog):</p>
+<table>
+  <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>number</td><td>Unique product identifier</td></tr>
+  <tr><td><code>name</code></td><td>string</td><td>Display name</td></tr>
+  <tr><td><code>description</code></td><td>string</td><td>Short description</td></tr>
+  <tr><td><code>price</code></td><td>number</td><td>Unit price</td></tr>
+  <tr><td><code>quantityAvailable</code></td><td>number</td><td>Current stock level</td></tr>
+</table>
+
+<p><strong>Cart item</strong> (stored in the cart array):</p>
+<table>
+  <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>productId</code></td><td>number</td><td>References a product <code>id</code></td></tr>
+  <tr><td><code>quantity</code></td><td>number</td><td>Number of units of this product</td></tr>
+  <tr><td><code>totalPrice</code></td><td>number</td><td><code>price × quantity</code> (rounded to 2 decimals)</td></tr>
+</table>
+
+<h3>Core functions (business logic — unit tested)</h3>
+<table>
+  <tr><th>Function</th><th>Parameters</th><th>Return value</th><th>Responsibility</th></tr>
+  <tr>
+    <td><code>createProducts</code></td>
+    <td>—</td>
+    <td>array of products</td>
+    <td>Return an independent deep copy of the catalog so each test/run starts with fresh stock.</td>
+  </tr>
+  <tr>
+    <td><code>createCart</code></td>
+    <td>—</td>
+    <td>array</td>
+    <td>Create and return a new, empty cart.</td>
+  </tr>
+  <tr>
+    <td><code>findProduct</code></td>
+    <td><code>products</code>, <code>productId</code></td>
+    <td>product object or <code>null</code></td>
+    <td>Locate a product by id, or return <code>null</code> when it does not exist.</td>
+  </tr>
+  <tr>
+    <td><code>roundMoney</code></td>
+    <td><code>value</code></td>
+    <td>number</td>
+    <td>Round a monetary value to two decimals to avoid floating-point drift.</td>
+  </tr>
+  <tr>
+    <td><code>addToCart</code></td>
+    <td><code>cart</code>, <code>products</code>, <code>productId</code>, <code>quantity</code></td>
+    <td>the mutated <code>cart</code> array</td>
+    <td>Validate that the product exists, the quantity is a positive integer, and there is enough stock; then add a new cart item or merge the quantity into an existing one.</td>
+  </tr>
+  <tr>
+    <td><code>getTotal</code></td>
+    <td><code>cart</code></td>
+    <td>number</td>
+    <td>Sum the <code>totalPrice</code> of every item currently in the cart.</td>
+  </tr>
+  <tr>
+    <td><code>checkout</code></td>
+    <td><code>cart</code>, <code>products</code></td>
+    <td><code>{ total, items }</code></td>
+    <td>Validate a non-empty cart and re-check stock, decrease each product's <code>quantityAvailable</code>, clear the cart, and return the total together with a snapshot of the purchased items.</td>
+  </tr>
+</table>
+
+
+<h3>CLI functions (interaction layer — not unit tested)</h3>
+<table>
+  <tr><th>Function</th><th>Parameters</th><th>Return value</th><th>Responsibility</th></tr>
+  <tr>
+    <td><code>formatMoney</code></td>
+    <td><code>value</code></td>
+    <td>string</td>
+    <td>Format a number as a currency string for display.</td>
+  </tr>
+  <tr>
+    <td><code>printProducts</code></td>
+    <td><code>products</code></td>
+    <td>— (void)</td>
+    <td>Print the product catalog to the console.</td>
+  </tr>
+  <tr>
+    <td><code>printCart</code></td>
+    <td><code>cart</code>, <code>products</code></td>
+    <td>— (void)</td>
+    <td>Print the current cart contents and its total.</td>
+  </tr>
+  <tr>
+    <td><code>main</code></td>
+    <td>—</td>
+    <td><code>Promise&lt;void&gt;</code></td>
+    <td>Run the <code>readline</code> loop: show the menu, dispatch commands, catch errors, and continue until <code>quit</code> or <code>checkout</code>.</td>
+  </tr>
+</table>
+
+<h2>Assumptions</h2>
+<ul>
+  <li>Product ids are unique integers.</li>
+  <li><code>quantity</code> must be a positive integer; <code>quantityAvailable</code> is a non-negative integer.</li>
+  <li>Adding a product that is already in the cart merges the quantities into a single cart item.</li>
+  <li><code>checkout</code> validates every item before mutating stock, so a failed checkout never partially deducts inventory.</li>
+  <li>Monetary results are rounded to two decimals to keep floating-point arithmetic (e.g. <code>0.1 + 0.2</code>) from leaking into totals.</li>
+</ul>
+
+</body>
+</html>
+

@@ -1,0 +1,29 @@
+{
+  "name": "assignment1-shopping-cart",
+  "version": "1.0.0",
+  "description": "Command Line Shopping Cart System - BTH012 Assignment 1",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "vitest run",
+    "tests": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "bth012",
+    "shopping-cart",
+    "cli",
+    "node"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/eslint-plugin": "^1.6.26",
+    "eslint": "^10.8.0",
+    "eslint-plugin-n": "^18.2.2",
+    "eslint-plugin-promise": "^7.3.0",
+    "globals": "^17.9.0",
+    "vitest": "^4.1.10"
+  }
+}
